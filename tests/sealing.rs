@@ -52,3 +52,20 @@ fn test_sealing_add() {
     // memfd is "seal" sealed, adding further sealing should fail.
     m0.add_seals(&shrink_seal).unwrap_err();
 }
+
+#[test]
+fn test_sealing_resize() {
+    let opts = memfd::MemfdOptions::default().allow_sealing(true);
+    let mfd = opts.create("sized-1K").unwrap();
+    mfd.as_file().set_len(1024).unwrap();
+
+    mfd.add_seal(memfd::FileSeal::SealGrow).unwrap();
+    mfd.as_file().set_len(2048).unwrap_err();
+    mfd.as_file().set_len(512).unwrap();
+
+    mfd.add_seal(memfd::FileSeal::SealShrink).unwrap();
+    mfd.as_file().set_len(1000).unwrap_err();
+    mfd.as_file().set_len(1024).unwrap_err();
+    mfd.as_file().set_len(256).unwrap_err();
+    mfd.as_file().set_len(512).unwrap();
+}
