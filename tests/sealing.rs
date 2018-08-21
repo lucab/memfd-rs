@@ -1,0 +1,54 @@
+extern crate memfd;
+use std::iter::FromIterator;
+
+#[test]
+fn test_sealing_default() {
+    let opts = memfd::MemfdOptions::default();
+    let m0 = opts.create("default").unwrap();
+    let sset = m0.seals().unwrap();
+    let default = memfd::SealsHashSet::from_iter(vec![memfd::FileSeal::SealSeal]);
+    assert_eq!(sset, default);
+}
+
+#[test]
+fn test_sealing_unsealed() {
+    let opts = memfd::MemfdOptions::default();
+    let m0 = opts.allow_sealing(true).create("default").unwrap();
+    let sset = m0.seals().unwrap();
+    assert_eq!(sset.len(), 0);
+}
+
+#[test]
+fn test_sealing_add() {
+    let opts = memfd::MemfdOptions::default();
+    let m0 = opts.allow_sealing(true).create("default").unwrap();
+    let sset = m0.seals().unwrap();
+    assert_eq!(sset.len(), 0);
+
+    let write_seal = memfd::SealsHashSet::from_iter(vec![memfd::FileSeal::SealWrite]);
+    m0.add_seal(memfd::FileSeal::SealWrite).unwrap();
+    let a0 = write_seal;
+    let r0 = m0.seals().unwrap();
+    assert_eq!(r0, a0);
+
+    let grow_seal = memfd::SealsHashSet::from_iter(vec![memfd::FileSeal::SealGrow]);
+    m0.add_seals(&grow_seal).unwrap();
+    let a1 = a0.union(&grow_seal).cloned().collect();
+    let r1 = m0.seals().unwrap();
+    assert_eq!(r1, a1);
+
+    let shrink_seal = memfd::SealsHashSet::from_iter(vec![memfd::FileSeal::SealShrink]);
+    m0.add_seals(&shrink_seal).unwrap();
+    let a2 = a1.union(&shrink_seal).cloned().collect();
+    let r2 = m0.seals().unwrap();
+    assert_eq!(r2, a2);
+
+    let seal_seal = memfd::SealsHashSet::from_iter(vec![memfd::FileSeal::SealSeal]);
+    m0.add_seals(&seal_seal).unwrap();
+    let a3 = a2.union(&seal_seal).cloned().collect();
+    let r3 = m0.seals().unwrap();
+    assert_eq!(r3, a3);
+
+    // memfd is "seal" sealed, adding further sealing should fail.
+    m0.add_seals(&shrink_seal).unwrap_err();
+}
