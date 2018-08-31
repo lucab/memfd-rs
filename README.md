@@ -38,6 +38,8 @@ fn new_sized_memfd() -> Result<memfd::Memfd> {
 }
 ```
 
+Some more examples are available under [examples](examples).
+
 ## License
 
 Licensed under either of
