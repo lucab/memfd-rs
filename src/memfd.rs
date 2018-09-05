@@ -1,3 +1,4 @@
+use either;
 use errno;
 use errors;
 use libc;
@@ -140,24 +141,36 @@ pub struct Memfd {
 }
 
 impl Memfd {
+    /// Try to convert a `File` object into a `Memfd`.
+    ///
+    /// This requires transferring ownership of the `File`.
+    /// If the underlying file-descriptor is compatible with
+    /// memfd/sealing, it returns a proper `Memfd` object,
+    /// otherwise it transfers back ownership of the original
+    /// `File` for further usage.
+    pub fn try_from_file(fp: fs::File) -> either::Either<Self, fs::File> {
+        // Check if the fd supports F_GET_SEALS;
+        // if so, it is safely compatible with `Memfd`.
+        match Self::file_get_seals(&fp) {
+            Ok(_) => either::Either::Left(Self { file: fp }),
+            Err(_) => either::Either::Right(fp),
+        }
+    }
+
     /// Return a `File` object for this memfd.
     pub fn as_file(&self) -> &fs::File {
         &self.file
     }
 
+    /// Consume this `Memfd`, returning the underlying `File`.
+    pub fn into_file(self) -> fs::File {
+        self.file
+    }
+
     /// Return the current set of seals.
     pub fn seals(&self) -> errors::Result<sealing::SealsHashSet> {
-        let fd = self.file.as_raw_fd();
-        // UNSAFE(lucab): required syscall.
-        let r = unsafe { libc::syscall(libc::SYS_fcntl, fd, libc::F_GET_SEALS) };
-        if r < 0 {
-            return Err(
-                errors::Error::from_kind(errors::ErrorKind::Sys(errno::errno()))
-                    .chain_err(|| "F_GET_SEALS error"),
-            );
-        };
-
-        Ok(sealing::bitflags_to_seals(r as u64))
+        let flags = Self::file_get_seals(&self.file)?;
+        Ok(sealing::bitflags_to_seals(flags))
     }
 
     /// Add a single seal to the existing set of seals.
@@ -183,9 +196,19 @@ impl Memfd {
         Ok(())
     }
 
-    /// Consume this `Memfd`, returning the underlying `File`.
-    pub fn into_file(self) -> fs::File {
-        self.file
+    /// Return the current sealing bitflags.
+    fn file_get_seals(fp: &fs::File) -> errors::Result<u64> {
+        let fd = fp.as_raw_fd();
+        // UNSAFE(lucab): required syscall.
+        let r = unsafe { libc::syscall(libc::SYS_fcntl, fd, libc::F_GET_SEALS) };
+        if r < 0 {
+            return Err(
+                errors::Error::from_kind(errors::ErrorKind::Sys(errno::errno()))
+                    .chain_err(|| "F_GET_SEALS error"),
+            );
+        };
+
+        Ok(r as u64)
     }
 
     /// Assemble a `File` object from a raw file-descriptor.
