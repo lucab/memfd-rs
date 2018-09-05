@@ -1,4 +1,5 @@
 extern crate memfd;
+use std::fs;
 use std::os::unix::io::AsRawFd;
 
 #[test]
@@ -23,4 +24,19 @@ fn test_memfd_multi() {
 
     let m0_file = m0.into_file();
     assert_eq!(f0, m0_file.as_raw_fd());
+}
+
+#[test]
+fn test_memfd_from_into() {
+    let opts = memfd::MemfdOptions::default();
+    let m0 = opts.create("default").unwrap();
+    let f0 = m0.into_file();
+    let _ = memfd::Memfd::try_from_file(f0)
+        .left()
+        .expect("failed to convert a legit memfd file");
+
+    let rootdir = fs::File::open("/").unwrap();
+    let _ = memfd::Memfd::try_from_file(rootdir)
+        .right()
+        .expect("unexpected conversion from a non-memfd file");
 }

@@ -32,10 +32,11 @@
 
 #![deny(missing_docs)]
 
+extern crate either;
 extern crate errno;
-extern crate libc;
 #[macro_use]
 extern crate error_chain;
+extern crate libc;
 
 pub mod errors;
 mod memfd;
