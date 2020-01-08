@@ -1,6 +1,4 @@
 use either;
-use errno;
-use errors;
 use libc;
 use nr;
 use sealing;
@@ -62,18 +60,16 @@ impl MemfdOptions {
     }
 
     /// Create a memfd according to configuration.
-    pub fn create<T: AsRef<str>>(&self, name: T) -> errors::Result<Memfd> {
-        let cname = ffi::CString::new(name.as_ref())?;
+    pub fn create<T: AsRef<str>>(&self, name: T) -> Result<Memfd, crate::Error> {
+        let cname =
+            ffi::CString::new(name.as_ref()).map_err(crate::Error::NameCStringConversion)?;
         let name_ptr = cname.as_ptr();
         let flags = self.bitflags();
 
         // UNSAFE(lucab): name_ptr points to memory owned by cname.
         let r = unsafe { libc::syscall(libc::SYS_memfd_create, name_ptr, flags) };
         if r < 0 {
-            return Err(
-                errors::Error::from_kind(errors::ErrorKind::Sys(errno::errno()))
-                    .chain_err(|| "memfd_create error"),
-            );
+            return Err(crate::Error::Create(std::io::Error::last_os_error()));
         };
 
         // UNSAFE(lucab): returned from kernel, checked for non-negative value.
@@ -168,13 +164,13 @@ impl Memfd {
     }
 
     /// Return the current set of seals.
-    pub fn seals(&self) -> errors::Result<sealing::SealsHashSet> {
+    pub fn seals(&self) -> Result<sealing::SealsHashSet, crate::Error> {
         let flags = Self::file_get_seals(&self.file)?;
         Ok(sealing::bitflags_to_seals(flags))
     }
 
     /// Add a single seal to the existing set of seals.
-    pub fn add_seal(&self, seal: sealing::FileSeal) -> errors::Result<()> {
+    pub fn add_seal(&self, seal: sealing::FileSeal) -> Result<(), crate::Error> {
         use std::iter::FromIterator;
 
         let set = sealing::SealsHashSet::from_iter(vec![seal]);
@@ -182,30 +178,24 @@ impl Memfd {
     }
 
     /// Add some seals to the existing set of seals.
-    pub fn add_seals(&self, seals: &sealing::SealsHashSet) -> errors::Result<()> {
+    pub fn add_seals(&self, seals: &sealing::SealsHashSet) -> Result<(), crate::Error> {
         let fd = self.file.as_raw_fd();
         let flags = sealing::seals_to_bitflags(seals);
         // UNSAFE(lucab): required syscall.
         let r = unsafe { libc::syscall(libc::SYS_fcntl, fd, libc::F_ADD_SEALS, flags) };
         if r < 0 {
-            return Err(
-                errors::Error::from_kind(errors::ErrorKind::Sys(errno::errno()))
-                    .chain_err(|| "F_ADD_SEALS error"),
-            );
+            return Err(crate::Error::AddSeals(std::io::Error::last_os_error()));
         };
         Ok(())
     }
 
     /// Return the current sealing bitflags.
-    fn file_get_seals(fp: &fs::File) -> errors::Result<u64> {
+    fn file_get_seals(fp: &fs::File) -> Result<u64, crate::Error> {
         let fd = fp.as_raw_fd();
         // UNSAFE(lucab): required syscall.
         let r = unsafe { libc::syscall(libc::SYS_fcntl, fd, libc::F_GET_SEALS) };
         if r < 0 {
-            return Err(
-                errors::Error::from_kind(errors::ErrorKind::Sys(errno::errno()))
-                    .chain_err(|| "F_GET_SEALS error"),
-            );
+            return Err(crate::Error::GetSeals(std::io::Error::last_os_error()));
         };
 
         Ok(r as u64)

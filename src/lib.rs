@@ -7,9 +7,8 @@
 //!
 //! ```rust
 //! use memfd;
-//! # use memfd::errors::Result;
 //!
-//! fn new_sized_memfd() -> Result<memfd::Memfd> {
+//! fn new_sized_memfd() -> Result<memfd::Memfd, Box<dyn std::error::Error>> {
 //!     // Create a sealable memfd.
 //!     let opts = memfd::MemfdOptions::default().allow_sealing(true);
 //!     let mfd = opts.create("sized-1K")?;
@@ -24,7 +23,7 @@
 //!     mfd.add_seals(&seals)?;
 //!
 //!     // Prevent further sealing changes.
-//!     mfd.add_seal(memfd::FileSeal::SealSeal);
+//!     mfd.add_seal(memfd::FileSeal::SealSeal)?;
 //!
 //!     Ok(mfd)
 //! }
@@ -33,15 +32,14 @@
 #![deny(missing_docs)]
 
 extern crate either;
-extern crate errno;
-#[macro_use]
-extern crate error_chain;
 extern crate libc;
+extern crate thiserror;
 
-pub mod errors;
+mod errors;
 mod memfd;
 mod nr;
 mod sealing;
 
+pub use errors::Error;
 pub use memfd::{HugetlbSize, Memfd, MemfdOptions};
 pub use sealing::{FileSeal, SealsHashSet};
