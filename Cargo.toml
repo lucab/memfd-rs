@@ -1,6 +1,7 @@
 [package]
 name = "memfd"
-version = "0.2.1-alpha.0"
+version = "0.3.0-alpha.0"
+edition = "2018"
 authors = [ "Luca Bruno <lucab@debian.org>" ]
 license = "MIT/Apache-2.0"
 repository = "https://github.com/lucab/memfd-rs"
@@ -21,9 +22,8 @@ thiserror = "1"
 
 [package.metadata.release]
 sign-commit = true
-upload-doc = false
 disable-publish = true
 disable-push = true
 pre-release-commit-message = "cargo: memfd release {{version}}"
-pro-release-commit-message = "cargo: version bump to {{version}}"
+post-release-commit-message = "cargo: development version bump"
 tag-message = "memfd {{version}}"
