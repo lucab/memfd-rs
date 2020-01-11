@@ -40,6 +40,6 @@ mod memfd;
 mod nr;
 mod sealing;
 
-pub use errors::Error;
-pub use memfd::{HugetlbSize, Memfd, MemfdOptions};
-pub use sealing::{FileSeal, SealsHashSet};
+pub use crate::errors::Error;
+pub use crate::memfd::{HugetlbSize, Memfd, MemfdOptions};
+pub use crate::sealing::{FileSeal, SealsHashSet};
