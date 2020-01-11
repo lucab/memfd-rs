@@ -17,8 +17,7 @@ exclude = [
 libc = "0.2"
 # Public dependencies, exposed through library API.
 either = "1.5"
-errno = "0.2"
-error-chain = {version = "0.12", default-features = false}
+thiserror = "1"
 
 [package.metadata.release]
 sign-commit = true
