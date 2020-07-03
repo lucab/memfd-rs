@@ -18,7 +18,6 @@ exclude = [
 libc = "0.2"
 # Public dependencies, exposed through library API.
 either = "1.5"
-thiserror = "1"
 
 [package.metadata.release]
 sign-commit = true
@@ -27,3 +26,6 @@ disable-push = true
 pre-release-commit-message = "cargo: memfd release {{version}}"
 post-release-commit-message = "cargo: development version bump"
 tag-message = "memfd {{version}}"
+
+[package.metadata.docs.rs]
+rustdoc-args = ["--cfg", "docsrs"]

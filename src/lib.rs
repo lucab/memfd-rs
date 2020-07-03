@@ -28,18 +28,26 @@
 //!     Ok(mfd)
 //! }
 //! ```
-
-#![deny(missing_docs)]
-
-extern crate either;
-extern crate libc;
-extern crate thiserror;
+#![deny(
+    missing_docs,
+    intra_doc_link_resolution_failure,
+    clippy::all,
+    unreachable_pub,
+    unused,
+)]
+#![cfg_attr(docsrs, feature(doc_cfg))]
+#![cfg_attr(docsrs, doc(cfg(target_os="linux")))]
+// No-op crate on platforms that do not support memfd_create, instead of failing to link, or at
+// runtime.
+#![cfg(target_os="linux")]
 
 mod errors;
 mod memfd;
 mod nr;
 mod sealing;
 
-pub use crate::errors::Error;
-pub use crate::memfd::{HugetlbSize, Memfd, MemfdOptions};
-pub use crate::sealing::{FileSeal, SealsHashSet};
+pub use crate::{
+    errors::Error,
+    memfd::{HugetlbSize, Memfd, MemfdOptions},
+    sealing::{FileSeal, SealsHashSet},
+};
