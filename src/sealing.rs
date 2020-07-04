@@ -1,19 +1,28 @@
-use libc;
 use std::collections::HashSet;
 
 /// An `HashSet` specialized on `FileSeal`.
 pub type SealsHashSet = HashSet<FileSeal>;
 
-/// Seal that can be applied to a `Memfd`.
+/// Seal that can be applied to a [`Memfd`].
+///
+/// [`Memfd`]: crate::Memfd
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum FileSeal {
     /// File cannot be reduced in size.
+    ///
+    /// Corresponds to `F_SEAL_SHRINK`.
     SealShrink,
     /// File cannot be grown in size.
+    ///
+    /// Corresponds to `F_SEAL_GROW`.
     SealGrow,
     /// File cannot be written.
+    ///
+    /// Corresponds to `F_SEAL_WRITE`.
     SealWrite,
     /// File sealing cannot be further manipulated.
+    ///
+    /// Corresponds to `F_SEAL_SEAL`.
     SealSeal,
 }
 
