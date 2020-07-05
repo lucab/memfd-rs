@@ -7,7 +7,6 @@ pub(super) const MFD_HUGETLB: u32 = 4;
 /* from <asm-generic/hugetlb_encode.h> */
 
 pub(super) const MFD_HUGE_SHIFT: u32 = 26;
-
 pub(super) const MFD_HUGE_64KB: u32 = 16 << MFD_HUGE_SHIFT;
 pub(super) const MFD_HUGE_512KB: u32 = 19 << MFD_HUGE_SHIFT;
 pub(super) const MFD_HUGE_1MB: u32 = 20 << MFD_HUGE_SHIFT;

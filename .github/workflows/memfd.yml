@@ -55,6 +55,45 @@ jobs:
           command: test
           args: --manifest-path=Cargo.toml --release -- --nocapture
 
+  freebsd-cross-build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        rust_target:
+          # BSDs: could be tested with full system emulation
+          - i686-unknown-freebsd
+          - x86_64-unknown-freebsd
+    timeout-minutes: 10
+    steps:
+      - name: Add freebsd-version
+        run: |
+          mkdir -p $PWD/hack
+          echo "#!/usr/bin/env bash
+          echo 13.0" > $PWD/hack/freebsd-version
+          chmod +x $PWD/hack/freebsd-version
+          echo "$PWD/hack" >> $GITHUB_PATH
+      - name: Run freebsd-version
+        run: freebsd-version
+      - uses: actions/checkout@v2
+      - name: Install Rust nightly
+        uses: actions-rs/toolchain@v1
+        with:
+            toolchain: nightly
+            profile: minimal
+            target: ${{ matrix.rust_target }}
+            default: true
+      - name: Update
+        uses: actions-rs/cargo@v1
+        with:
+          command: update
+          args: --manifest-path=Cargo.toml
+      - name: Build ${{ matrix.rust_target }}
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --target ${{ matrix.rust_target }} --manifest-path=Cargo.toml
+
   build-on-unsupported:
     runs-on: windows-latest
     strategy:

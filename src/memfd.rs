@@ -7,6 +7,11 @@ unsafe fn memfd_create(name: *const raw::c_char, flags: raw::c_uint) -> raw::c_i
     libc::syscall(libc::SYS_memfd_create, name, flags) as raw::c_int
 }
 
+#[cfg(target_os="freebsd")]
+extern "C" {
+    fn memfd_create(name: *const raw::c_char, flags: raw::c_uint) -> raw::c_int;
+}
+
 /// A `Memfd` builder, providing advanced options and flags for specifying its behavior.
 #[derive(Clone, Debug)]
 pub struct MemfdOptions {
@@ -208,8 +213,9 @@ impl Memfd {
     pub fn add_seals(&self, seals: &sealing::SealsHashSet) -> Result<(), crate::Error> {
         let fd = self.file.as_raw_fd();
         let flags = sealing::seals_to_bitflags(seals);
-        // UNSAFE(lucab): required syscall.
-        let r = unsafe { libc::syscall(libc::SYS_fcntl, fd, libc::F_ADD_SEALS, flags) };
+        // SAFETY: The FFI function called has no soundness implications. Furthermore due to
+        // invariants of `Memfd`, this call is provided with a valid file descriptor.
+        let r = unsafe { libc::fcntl(fd, libc::F_ADD_SEALS, flags) };
         if r < 0 {
             return Err(crate::Error::AddSeals(std::io::Error::last_os_error()));
         };
@@ -219,11 +225,11 @@ impl Memfd {
     /// Return the current sealing bitflags.
     fn file_get_seals(fp: &fs::File) -> Result<u64, crate::Error> {
         let fd = fp.as_raw_fd();
-        // SAFETY: The syscall called has no soundness implications (i.e. does not mess with
+        // SAFETY: The FFI function called has no soundness implications (i.e. does not mess with
         // process memory in weird ways, checks its arguments for correctness, etc.). Furthermore
         // due to invariants of `Memfd` this syscall is provided a valid file descriptor.
         let r = unsafe {
-            libc::syscall(libc::SYS_fcntl, fd, libc::F_GET_SEALS)
+            libc::fcntl(fd, libc::F_GET_SEALS)
         };
         if r < 0 {
             return Err(crate::Error::GetSeals(std::io::Error::last_os_error()));
