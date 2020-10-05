@@ -32,11 +32,9 @@ fn test_memfd_from_into() {
     let m0 = opts.create("default").unwrap();
     let f0 = m0.into_file();
     let _ = memfd::Memfd::try_from_file(f0)
-        .left()
         .expect("failed to convert a legit memfd file");
 
     let rootdir = fs::File::open("/").unwrap();
     let _ = memfd::Memfd::try_from_file(rootdir)
-        .right()
-        .expect("unexpected conversion from a non-memfd file");
+        .expect_err("unexpected conversion from a non-memfd file");
 }

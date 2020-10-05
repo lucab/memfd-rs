@@ -172,11 +172,8 @@ impl Memfd {
     /// Otherwise the supplied `File` is returned for further usage.
     ///
     /// [`File`]: fs::File
-    pub fn try_from_file(file: fs::File) -> either::Either<Self, fs::File> {
-        match Self::try_from_fd(file) {
-            Ok(x) => either::Either::Left(x),
-            Err(e) => either::Either::Right(e),
-        }
+    pub fn try_from_file(file: fs::File) -> Result<Self, fs::File> {
+        Self::try_from_fd(file)
     }
 
     /// Return a reference to the backing [`File`].
