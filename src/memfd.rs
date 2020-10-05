@@ -146,6 +146,25 @@ pub struct Memfd {
 }
 
 impl Memfd {
+    /// Try to convert an object that owns a file descriptor into a `Memfd`.
+    ///
+    /// This function consumes the ownership of the specified object. If the underlying
+    /// file-descriptor is compatible with memfd/sealing, a `Memfd` object is returned.
+    /// Otherwise the supplied object is returned as error.
+    pub fn try_from_fd<F>(fd: F) -> Result<Self, F>
+    where
+        F: AsRawFd + IntoRawFd,
+    {
+        if !is_memfd(&fd) {
+            Err(fd)
+        } else {
+            // SAFETY: from_raw_fd requires a valid, uniquely owned file descriptor.
+            // The IntoRawFd trait guarantees both conditions.
+            let file = unsafe { fs::File::from_raw_fd(fd.into_raw_fd()) };
+            Ok(Self { file })
+        }
+    }
+
     /// Try to convert a [`File`] object into a `Memfd`.
     ///
     /// This function consumes the ownership of the specified `File`.  If the underlying
@@ -153,12 +172,10 @@ impl Memfd {
     /// Otherwise the supplied `File` is returned for further usage.
     ///
     /// [`File`]: fs::File
-    pub fn try_from_file(fp: fs::File) -> either::Either<Self, fs::File> {
-        // Check if the fd supports F_GET_SEALS;
-        // if so, it is safely compatible with `Memfd`.
-        match Self::file_get_seals(&fp) {
-            Ok(_) => either::Either::Left(Self { file: fp }),
-            Err(_) => either::Either::Right(fp),
+    pub fn try_from_file(file: fs::File) -> either::Either<Self, fs::File> {
+        match Self::try_from_fd(file) {
+            Ok(x) => either::Either::Left(x),
+            Err(e) => either::Either::Right(e),
         }
     }
 
@@ -245,4 +262,16 @@ impl IntoRawFd for Memfd {
     fn into_raw_fd(self) -> RawFd {
         self.into_file().into_raw_fd()
     }
+}
+
+/// Check if a file descriptor is a memfd.
+///
+/// Implemented by trying to retrieve the seals.
+/// If that fails, the fd is not a memfd.
+fn is_memfd<F: AsRawFd>(fd: &F) -> bool {
+    // SAFETY: The syscall called has no soundness implications (i.e. does not mess with
+    // process memory in weird ways, checks its arguments for correctness, etc.).
+    // The `AsRawFd` trait guarantees that the input is a valid file descriptor.
+    let ret = unsafe { libc::syscall(libc::SYS_fcntl, fd.as_raw_fd(), libc::F_GET_SEALS) };
+    ret >= 0
 }
