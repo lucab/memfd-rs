@@ -1,4 +1,5 @@
-use std::{ffi, fs, os::raw, os::unix::io::{AsRawFd, FromRawFd, RawFd}};
+use std::os::unix::io::{AsRawFd, FromRawFd, IntoRawFd, RawFd};
+use std::{ffi, fs, os::raw};
 use crate::{nr, sealing};
 
 #[cfg(target_os="linux")]
@@ -231,5 +232,17 @@ impl FromRawFd for Memfd {
     unsafe fn from_raw_fd(fd: RawFd) -> Memfd {
         let file = fs::File::from_raw_fd(fd);
         Memfd { file }
+    }
+}
+
+impl AsRawFd for Memfd {
+    fn as_raw_fd(&self) -> RawFd {
+        self.file.as_raw_fd()
+    }
+}
+
+impl IntoRawFd for Memfd {
+    fn into_raw_fd(self) -> RawFd {
+        self.into_file().into_raw_fd()
     }
 }
