@@ -16,8 +16,6 @@ exclude = [
 [dependencies]
 # Private dependencies.
 libc = "0.2"
-# Public dependencies, exposed through library API.
-either = "1.5"
 
 [package.metadata.release]
 sign-commit = true
