@@ -9,7 +9,17 @@ fn test_memfd_default() {
     let meta0 = m0.as_file().metadata().unwrap();
     assert_eq!(meta0.len(), 0);
     assert_eq!(meta0.is_file(), true);
+    assert_eq!(get_close_on_exec(&m0).unwrap(), true);
     drop(m0)
+}
+
+#[test]
+fn test_memfd_no_cloexec() {
+    let memfd = memfd::MemfdOptions::default()
+        .close_on_exec(false)
+        .create("no-cloexec")
+        .unwrap();
+    assert_eq!(get_close_on_exec(&memfd).unwrap(), false);
 }
 
 #[test]
@@ -39,4 +49,17 @@ fn test_memfd_from_into() {
     let _ = memfd::Memfd::try_from_file(rootdir)
         .right()
         .expect("unexpected conversion from a non-memfd file");
+}
+
+/// Check if the close-on-exec flag is set for the memfd.
+pub fn get_close_on_exec(memfd: &memfd::Memfd) -> std::io::Result<bool> {
+    // SAFETY: The syscall called has no soundness implications (i.e. does not mess with
+    // process memory in weird ways, checks its arguments for correctness, etc.). Furthermore
+    // due to invariants of `Memfd` this syscall is provided a valid file descriptor.
+    let flags = unsafe { libc::fcntl(memfd.as_file().as_raw_fd(), libc::F_GETFD, 0) };
+    if flags == -1 {
+        Err(std::io::Error::last_os_error())
+    } else {
+        Ok(flags & libc::FD_CLOEXEC != 0)
+    }
 }

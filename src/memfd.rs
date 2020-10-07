@@ -90,7 +90,7 @@ impl Default for MemfdOptions {
     fn default() -> Self {
         Self {
             allow_sealing: false,
-            cloexec: false,
+            cloexec: true,
             hugetlb: None,
         }
     }
