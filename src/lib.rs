@@ -41,13 +41,11 @@
 // runtime.
 #![cfg(target_os="linux")]
 
-mod errors;
 mod memfd;
 mod nr;
 mod sealing;
 
 pub use crate::{
-    errors::Error,
     memfd::{HugetlbSize, Memfd, MemfdOptions},
     sealing::{FileSeal, SealsHashSet},
 };

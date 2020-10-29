@@ -65,7 +65,7 @@ impl MemfdOptions {
     /// Create a [`Memfd`] according to configuration.
     ///
     /// [`Memfd`]: Memfd
-    pub fn create<T: AsRef<str>>(&self, name: T) -> Result<Memfd, crate::Error> {
+    pub fn create<T: AsRef<str>>(&self, name: T) -> Result<Memfd, std::io::Error> {
         let flags = self.bitflags();
         // SAFETY: A syscall is being invoked. It has soundness implications – in particular
         // `name_ptr` must be pointing to a valid null-terminated string. We construct a `CString`
@@ -75,12 +75,11 @@ impl MemfdOptions {
         // is true by definition as we obtain said file descriptor from `memfd_create` syscall and
         // check the result for errors.
         unsafe {
-            let cname =
-                ffi::CString::new(name.as_ref()).map_err(crate::Error::NameCStringConversion)?;
+            let cname = ffi::CString::new(name.as_ref())?;
             let name_ptr = cname.as_ptr();
             let fd = memfd_create(name_ptr, flags);
             if fd < 0 {
-                return Err(crate::Error::Create(std::io::Error::last_os_error()));
+                return Err(std::io::Error::last_os_error());
             }
             Ok(Memfd::from_raw_fd(fd))
         }
@@ -191,13 +190,13 @@ impl Memfd {
     }
 
     /// Obtain the current set of seals for the `Memfd`.
-    pub fn seals(&self) -> Result<sealing::SealsHashSet, crate::Error> {
+    pub fn seals(&self) -> Result<sealing::SealsHashSet, std::io::Error> {
         let flags = Self::file_get_seals(&self.file)?;
         Ok(sealing::bitflags_to_seals(flags))
     }
 
     /// Add a seal to the existing set of seals.
-    pub fn add_seal(&self, seal: sealing::FileSeal) -> Result<(), crate::Error> {
+    pub fn add_seal(&self, seal: sealing::FileSeal) -> Result<(), std::io::Error> {
         use std::iter::FromIterator;
 
         let set = sealing::SealsHashSet::from_iter(vec![seal]);
@@ -205,19 +204,19 @@ impl Memfd {
     }
 
     /// Add some seals to the existing set of seals.
-    pub fn add_seals(&self, seals: &sealing::SealsHashSet) -> Result<(), crate::Error> {
+    pub fn add_seals(&self, seals: &sealing::SealsHashSet) -> Result<(), std::io::Error> {
         let fd = self.file.as_raw_fd();
         let flags = sealing::seals_to_bitflags(seals);
         // UNSAFE(lucab): required syscall.
         let r = unsafe { libc::syscall(libc::SYS_fcntl, fd, libc::F_ADD_SEALS, flags) };
         if r < 0 {
-            return Err(crate::Error::AddSeals(std::io::Error::last_os_error()));
+            return Err(std::io::Error::last_os_error());
         };
         Ok(())
     }
 
     /// Return the current sealing bitflags.
-    fn file_get_seals(fp: &fs::File) -> Result<u64, crate::Error> {
+    fn file_get_seals(fp: &fs::File) -> Result<u64, std::io::Error> {
         let fd = fp.as_raw_fd();
         // SAFETY: The syscall called has no soundness implications (i.e. does not mess with
         // process memory in weird ways, checks its arguments for correctness, etc.). Furthermore
@@ -226,7 +225,7 @@ impl Memfd {
             libc::syscall(libc::SYS_fcntl, fd, libc::F_GET_SEALS)
         };
         if r < 0 {
-            return Err(crate::Error::GetSeals(std::io::Error::last_os_error()));
+            return Err(std::io::Error::last_os_error());
         };
         Ok(r as u64)
     }
