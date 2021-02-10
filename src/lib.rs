@@ -30,7 +30,7 @@
 //! ```
 #![deny(
     missing_docs,
-    intra_doc_link_resolution_failure,
+    broken_intra_doc_links,
     clippy::all,
     unreachable_pub,
     unused,

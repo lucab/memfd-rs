@@ -98,6 +98,7 @@ impl Default for MemfdOptions {
 }
 
 /// Page size for a hugetlb anonymous file.
+#[allow(clippy::all)]
 #[derive(Copy, Clone, Debug)]
 pub enum HugetlbSize {
     /// 64KB hugetlb page.
