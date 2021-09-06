@@ -1,8 +1,8 @@
 [package]
 name = "memfd"
-version = "0.4.1-alpha.0"
+version = "0.4.2-alpha.0"
 edition = "2018"
-authors = [ "Luca Bruno <lucab@debian.org>", "Simonas Kazlauskas <git@kazlauskas.me>" ]
+authors = [ "Luca Bruno <lucab@lucabruno.net>", "Simonas Kazlauskas <git@kazlauskas.me>" ]
 license = "MIT/Apache-2.0"
 repository = "https://github.com/lucab/memfd-rs"
 documentation = "https://docs.rs/memfd"
@@ -18,11 +18,12 @@ exclude = [
 libc = "^0.2.99"
 
 [package.metadata.release]
-sign-commit = true
 disable-publish = true
 disable-push = true
-pre-release-commit-message = "cargo: memfd release {{version}}"
 post-release-commit-message = "cargo: development version bump"
+pre-release-commit-message = "cargo: memfd release {{version}}"
+sign-commit = true
+sign-tag = true
 tag-message = "memfd {{version}}"
 
 [package.metadata.docs.rs]
