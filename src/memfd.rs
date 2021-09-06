@@ -2,7 +2,7 @@ use std::os::unix::io::{AsRawFd, FromRawFd, IntoRawFd, RawFd};
 use std::{ffi, fs, os::raw};
 use crate::{nr, sealing};
 
-#[cfg(target_os="linux")]
+#[cfg(any(target_os = "android", target_os="linux"))]
 unsafe fn memfd_create(name: *const raw::c_char, flags: raw::c_uint) -> raw::c_int {
     libc::syscall(libc::SYS_memfd_create, name, flags) as raw::c_int
 }

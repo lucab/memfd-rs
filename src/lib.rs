@@ -36,10 +36,10 @@
     unused,
 )]
 #![cfg_attr(docsrs, feature(doc_cfg))]
-#![cfg_attr(docsrs, doc(cfg(target_os="linux")))]
+#![cfg_attr(docsrs, doc(cfg(any(target_os = "android", target_os= "linux" ))))]
 // No-op crate on platforms that do not support memfd_create, instead of failing to link, or at
 // runtime.
-#![cfg(target_os="linux")]
+#![cfg(any(target_os = "android", target_os= "linux"))]
 
 mod errors;
 mod memfd;

@@ -15,7 +15,7 @@ exclude = [
 
 [dependencies]
 # Private dependencies.
-libc = "0.2"
+libc = "^0.2.99"
 
 [package.metadata.release]
 sign-commit = true
