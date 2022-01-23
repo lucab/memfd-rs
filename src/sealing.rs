@@ -1,3 +1,4 @@
+use rustix::fs::SealFlags;
 use std::collections::HashSet;
 
 /// An `HashSet` specialized on `FileSeal`.
@@ -28,20 +29,19 @@ pub enum FileSeal {
 
 impl FileSeal {
     /// Return the bit-wise flag value of this seal.
-    pub(crate) fn bitflags(self) -> u32 {
-        let b = match self {
-            FileSeal::SealSeal => libc::F_SEAL_SEAL,
-            FileSeal::SealShrink => libc::F_SEAL_SHRINK,
-            FileSeal::SealGrow => libc::F_SEAL_GROW,
-            FileSeal::SealWrite => libc::F_SEAL_WRITE,
-        };
-        b as u32
+    pub(crate) fn bitflags(self) -> SealFlags {
+        match self {
+            FileSeal::SealSeal => SealFlags::SEAL,
+            FileSeal::SealShrink => SealFlags::SHRINK,
+            FileSeal::SealGrow => SealFlags::GROW,
+            FileSeal::SealWrite => SealFlags::WRITE,
+        }
     }
 }
 
 /// Convert a set of seals into a bitflags value.
-pub(crate) fn seals_to_bitflags(set: &SealsHashSet) -> u32 {
-    let mut bits = 0;
+pub(crate) fn seals_to_bitflags(set: &SealsHashSet) -> SealFlags {
+    let mut bits = SealFlags::empty();
     for seal in set.iter() {
         bits |= seal.bitflags();
     }
@@ -49,18 +49,18 @@ pub(crate) fn seals_to_bitflags(set: &SealsHashSet) -> u32 {
 }
 
 /// Convert a bitflags value to a set of seals.
-pub(crate) fn bitflags_to_seals(bitflags: u64) -> SealsHashSet {
+pub(crate) fn bitflags_to_seals(bitflags: SealFlags) -> SealsHashSet {
     let mut sset = SealsHashSet::new();
-    if bitflags & (libc::F_SEAL_SEAL as u64) != 0 {
+    if bitflags.contains(SealFlags::SEAL) {
         sset.insert(FileSeal::SealSeal);
     }
-    if bitflags & (libc::F_SEAL_SHRINK as u64) != 0 {
+    if bitflags.contains(SealFlags::SHRINK) {
         sset.insert(FileSeal::SealShrink);
     }
-    if bitflags & (libc::F_SEAL_GROW as u64) != 0 {
+    if bitflags.contains(SealFlags::GROW) {
         sset.insert(FileSeal::SealGrow);
     }
-    if bitflags & (libc::F_SEAL_WRITE as u64) != 0 {
+    if bitflags.contains(SealFlags::WRITE) {
         sset.insert(FileSeal::SealWrite);
     }
     sset

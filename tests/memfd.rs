@@ -54,10 +54,6 @@ pub fn get_close_on_exec(memfd: &memfd::Memfd) -> std::io::Result<bool> {
     // SAFETY: The syscall called has no soundness implications (i.e. does not mess with
     // process memory in weird ways, checks its arguments for correctness, etc.). Furthermore
     // due to invariants of `Memfd` this syscall is provided a valid file descriptor.
-    let flags = unsafe { libc::fcntl(memfd.as_file().as_raw_fd(), libc::F_GETFD, 0) };
-    if flags == -1 {
-        Err(std::io::Error::last_os_error())
-    } else {
-        Ok(flags & libc::FD_CLOEXEC != 0)
-    }
+    let flags = rustix::fs::fcntl_getfd(memfd.as_file())?;
+    Ok(flags.contains(rustix::fs::FdFlags::CLOEXEC))
 }
