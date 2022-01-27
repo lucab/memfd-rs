@@ -5,11 +5,11 @@ use std::fmt;
 #[derive(Debug)]
 pub enum Error {
     /// Cannot create the memfd
-    Create(rustix::io::Error),
+    Create(std::io::Error),
     /// Cannot add new seals to the memfd
-    AddSeals(rustix::io::Error),
+    AddSeals(std::io::Error),
     /// Cannot read the seals of a memfd
-    GetSeals(rustix::io::Error),
+    GetSeals(std::io::Error),
 }
 
 impl std::error::Error for Error {

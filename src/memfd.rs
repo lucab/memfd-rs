@@ -63,7 +63,9 @@ impl MemfdOptions {
     /// [`Memfd`]: Memfd
     pub fn create<T: AsRef<str>>(&self, name: T) -> Result<Memfd, crate::Error> {
         let flags = self.bitflags();
-        let fd = rustix::fs::memfd_create(name.as_ref(), flags).map_err(crate::Error::Create)?;
+        let fd = rustix::fs::memfd_create(name.as_ref(), flags)
+            .map_err(Into::into)
+            .map_err(crate::Error::Create)?;
         Ok(Memfd {
             file: rustix::fd::FromFd::from_fd(fd.into()),
         })
@@ -191,13 +193,17 @@ impl Memfd {
     /// Add some seals to the existing set of seals.
     pub fn add_seals(&self, seals: &sealing::SealsHashSet) -> Result<(), crate::Error> {
         let flags = sealing::seals_to_bitflags(seals);
-        rustix::fs::fcntl_add_seals(&self.file, flags).map_err(crate::Error::AddSeals)?;
+        rustix::fs::fcntl_add_seals(&self.file, flags)
+            .map_err(Into::into)
+            .map_err(crate::Error::AddSeals)?;
         Ok(())
     }
 
     /// Return the current sealing bitflags.
     fn file_get_seals(fp: &fs::File) -> Result<SealFlags, crate::Error> {
-        let r = rustix::fs::fcntl_get_seals(fp).map_err(crate::Error::GetSeals)?;
+        let r = rustix::fs::fcntl_get_seals(fp)
+            .map_err(Into::into)
+            .map_err(crate::Error::GetSeals)?;
         Ok(r)
     }
 }
