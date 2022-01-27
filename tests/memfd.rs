@@ -51,9 +51,6 @@ fn test_memfd_from_into() {
 
 /// Check if the close-on-exec flag is set for the memfd.
 pub fn get_close_on_exec(memfd: &memfd::Memfd) -> std::io::Result<bool> {
-    // SAFETY: The syscall called has no soundness implications (i.e. does not mess with
-    // process memory in weird ways, checks its arguments for correctness, etc.). Furthermore
-    // due to invariants of `Memfd` this syscall is provided a valid file descriptor.
     let flags = rustix::fs::fcntl_getfd(memfd.as_file())?;
     Ok(flags.contains(rustix::fs::FdFlags::CLOEXEC))
 }
