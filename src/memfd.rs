@@ -1,11 +1,7 @@
+use crate::sealing;
+use rustix::fs::{MemfdFlags, SealFlags};
+use std::fs;
 use std::os::unix::io::{AsRawFd, FromRawFd, IntoRawFd, RawFd};
-use std::{ffi, fs, os::raw};
-use crate::{nr, sealing};
-
-#[cfg(any(target_os = "android", target_os="linux"))]
-unsafe fn memfd_create(name: *const raw::c_char, flags: raw::c_uint) -> raw::c_int {
-    libc::syscall(libc::SYS_memfd_create, name, flags) as raw::c_int
-}
 
 /// A `Memfd` builder, providing advanced options and flags for specifying its behavior.
 #[derive(Clone, Debug)]
@@ -47,17 +43,17 @@ impl MemfdOptions {
     }
 
     /// Translate the current options into a bitflags value for `memfd_create`.
-    fn bitflags(&self) -> u32 {
-        let mut bits = 0;
+    fn bitflags(&self) -> MemfdFlags {
+        let mut bits = MemfdFlags::empty();
         if self.allow_sealing {
-            bits |= nr::MFD_ALLOW_SEALING;
+            bits |= MemfdFlags::ALLOW_SEALING;
         }
         if self.cloexec {
-            bits |= nr::MFD_CLOEXEC;
+            bits |= MemfdFlags::CLOEXEC;
         }
         if let Some(ref hugetlb) = self.hugetlb {
             bits |= hugetlb.bitflags();
-            bits |= nr::MFD_HUGETLB;
+            bits |= MemfdFlags::HUGETLB;
         }
         bits
     }
@@ -67,23 +63,12 @@ impl MemfdOptions {
     /// [`Memfd`]: Memfd
     pub fn create<T: AsRef<str>>(&self, name: T) -> Result<Memfd, crate::Error> {
         let flags = self.bitflags();
-        // SAFETY: A syscall is being invoked. It has soundness implications – in particular
-        // `name_ptr` must be pointing to a valid null-terminated string. We construct a `CString`
-        // in this `unsafe` block, ensuring both all invariants for the `name_ptr`.
-        //
-        // Furthermore `from_raw_fd` requires a valid file descriptor representing a `memfd`. This
-        // is true by definition as we obtain said file descriptor from `memfd_create` syscall and
-        // check the result for errors.
-        unsafe {
-            let cname =
-                ffi::CString::new(name.as_ref()).map_err(crate::Error::NameCStringConversion)?;
-            let name_ptr = cname.as_ptr();
-            let fd = memfd_create(name_ptr, flags);
-            if fd < 0 {
-                return Err(crate::Error::Create(std::io::Error::last_os_error()));
-            }
-            Ok(Memfd::from_raw_fd(fd))
-        }
+        let fd = rustix::fs::memfd_create(name.as_ref(), flags)
+            .map_err(Into::into)
+            .map_err(crate::Error::Create)?;
+        Ok(Memfd {
+            file: rustix::fd::FromFd::from_fd(fd.into()),
+        })
     }
 }
 
@@ -124,18 +109,18 @@ pub enum HugetlbSize {
 }
 
 impl HugetlbSize {
-    fn bitflags(self) -> u32 {
+    fn bitflags(self) -> MemfdFlags {
         match self {
-            HugetlbSize::Huge64KB => nr::MFD_HUGE_64KB,
-            HugetlbSize::Huge512KB => nr::MFD_HUGE_512KB,
-            HugetlbSize::Huge1MB => nr::MFD_HUGE_1MB,
-            HugetlbSize::Huge2MB => nr::MFD_HUGE_2MB,
-            HugetlbSize::Huge8MB => nr::MFD_HUGE_8MB,
-            HugetlbSize::Huge16MB => nr::MFD_HUGE_16MB,
-            HugetlbSize::Huge256MB => nr::MFD_HUGE_256MB,
-            HugetlbSize::Huge1GB => nr::MFD_HUGE_1GB,
-            HugetlbSize::Huge2GB => nr::MFD_HUGE_2GB,
-            HugetlbSize::Huge16GB => nr::MFD_HUGE_16GB,
+            HugetlbSize::Huge64KB => MemfdFlags::HUGE_64KB,
+            HugetlbSize::Huge512KB => MemfdFlags::HUGE_512KB,
+            HugetlbSize::Huge1MB => MemfdFlags::HUGE_1MB,
+            HugetlbSize::Huge2MB => MemfdFlags::HUGE_2MB,
+            HugetlbSize::Huge8MB => MemfdFlags::HUGE_8MB,
+            HugetlbSize::Huge16MB => MemfdFlags::HUGE_16MB,
+            HugetlbSize::Huge256MB => MemfdFlags::HUGE_256MB,
+            HugetlbSize::Huge1GB => MemfdFlags::HUGE_1GB,
+            HugetlbSize::Huge2GB => MemfdFlags::HUGE_2GB,
+            HugetlbSize::Huge16GB => MemfdFlags::HUGE_16GB,
         }
     }
 }
@@ -207,29 +192,19 @@ impl Memfd {
 
     /// Add some seals to the existing set of seals.
     pub fn add_seals(&self, seals: &sealing::SealsHashSet) -> Result<(), crate::Error> {
-        let fd = self.file.as_raw_fd();
         let flags = sealing::seals_to_bitflags(seals);
-        // UNSAFE(lucab): required syscall.
-        let r = unsafe { libc::syscall(libc::SYS_fcntl, fd, libc::F_ADD_SEALS, flags) };
-        if r < 0 {
-            return Err(crate::Error::AddSeals(std::io::Error::last_os_error()));
-        };
+        rustix::fs::fcntl_add_seals(&self.file, flags)
+            .map_err(Into::into)
+            .map_err(crate::Error::AddSeals)?;
         Ok(())
     }
 
     /// Return the current sealing bitflags.
-    fn file_get_seals(fp: &fs::File) -> Result<u64, crate::Error> {
-        let fd = fp.as_raw_fd();
-        // SAFETY: The syscall called has no soundness implications (i.e. does not mess with
-        // process memory in weird ways, checks its arguments for correctness, etc.). Furthermore
-        // due to invariants of `Memfd` this syscall is provided a valid file descriptor.
-        let r = unsafe {
-            libc::syscall(libc::SYS_fcntl, fd, libc::F_GET_SEALS)
-        };
-        if r < 0 {
-            return Err(crate::Error::GetSeals(std::io::Error::last_os_error()));
-        };
-        Ok(r as u64)
+    fn file_get_seals(fp: &fs::File) -> Result<SealFlags, crate::Error> {
+        let r = rustix::fs::fcntl_get_seals(fp)
+            .map_err(Into::into)
+            .map_err(crate::Error::GetSeals)?;
+        Ok(r)
     }
 }
 
@@ -267,9 +242,9 @@ impl IntoRawFd for Memfd {
 /// Implemented by trying to retrieve the seals.
 /// If that fails, the fd is not a memfd.
 fn is_memfd<F: AsRawFd>(fd: &F) -> bool {
-    // SAFETY: The syscall called has no soundness implications (i.e. does not mess with
-    // process memory in weird ways, checks its arguments for correctness, etc.).
-    // The `AsRawFd` trait guarantees that the input is a valid file descriptor.
-    let ret = unsafe { libc::syscall(libc::SYS_fcntl, fd.as_raw_fd(), libc::F_GET_SEALS) };
-    ret >= 0
+    // SAFETY: For now, we trust the file descriptor returned by `as_raw_fd()`
+    // is valid. Once `AsFd` is stabilized in std, we can use that instead of
+    // `AsRawFd`, and eliminate this `unsafe` block.
+    let fd = unsafe { rustix::fd::BorrowedFd::borrow_raw_fd(fd.as_raw_fd()) };
+    rustix::fs::fcntl_get_seals(&fd).is_ok()
 }
