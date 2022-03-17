@@ -245,6 +245,6 @@ fn is_memfd<F: AsRawFd>(fd: &F) -> bool {
     // SAFETY: For now, we trust the file descriptor returned by `as_raw_fd()`
     // is valid. Once `AsFd` is stabilized in std, we can use that instead of
     // `AsRawFd`, and eliminate this `unsafe` block.
-    let fd = unsafe { rustix::fd::BorrowedFd::borrow_raw_fd(fd.as_raw_fd()) };
+    let fd = unsafe { rustix::fd::BorrowedFd::borrow_raw(fd.as_raw_fd()) };
     rustix::fs::fcntl_get_seals(&fd).is_ok()
 }
