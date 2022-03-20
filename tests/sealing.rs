@@ -43,11 +43,21 @@ fn test_sealing_add() {
     let r2 = m0.seals().unwrap();
     assert_eq!(r2, a2);
 
+    // `SealFutureWrite` is new as of Linux 5.1, so be prepared for it to fail
+    // if we don't have it.
+    let future_write_seal = memfd::SealsHashSet::from_iter(vec![memfd::FileSeal::SealFutureWrite]);
+    let mut a3 = a2;
+    if let Ok(()) = m0.add_seal(memfd::FileSeal::SealFutureWrite) {
+        a3 = a3.union(&future_write_seal).cloned().collect();
+        let r3 = m0.seals().unwrap();
+        assert_eq!(r3, a3);
+    }
+
     let seal_seal = memfd::SealsHashSet::from_iter(vec![memfd::FileSeal::SealSeal]);
     m0.add_seals(&seal_seal).unwrap();
-    let a3 = a2.union(&seal_seal).cloned().collect();
-    let r3 = m0.seals().unwrap();
-    assert_eq!(r3, a3);
+    let a4 = a3.union(&seal_seal).cloned().collect();
+    let r4 = m0.seals().unwrap();
+    assert_eq!(r4, a4);
 
     // memfd is "seal" sealed, adding further sealing should fail.
     m0.add_seals(&shrink_seal).unwrap_err();
