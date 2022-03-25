@@ -29,6 +29,7 @@ pub enum FileSeal {
     /// writeable mappings. Introduced in Linux 5.1.
     ///
     /// Corresponds to `F_SEAL_FUTURE_WRITE`.
+    #[cfg(any(target_os = "android", target_os = "linux"))]
     SealFutureWrite,
 }
 
@@ -40,6 +41,7 @@ impl FileSeal {
             FileSeal::SealShrink => SealFlags::SHRINK,
             FileSeal::SealGrow => SealFlags::GROW,
             FileSeal::SealWrite => SealFlags::WRITE,
+            #[cfg(any(target_os = "android", target_os = "linux"))]
             FileSeal::SealFutureWrite => SealFlags::FUTURE_WRITE,
         }
     }
@@ -69,6 +71,7 @@ pub(crate) fn bitflags_to_seals(bitflags: SealFlags) -> SealsHashSet {
     if bitflags.contains(SealFlags::WRITE) {
         sset.insert(FileSeal::SealWrite);
     }
+    #[cfg(any(target_os = "android", target_os = "linux"))]
     if bitflags.contains(SealFlags::FUTURE_WRITE) {
         sset.insert(FileSeal::SealFutureWrite);
     }
