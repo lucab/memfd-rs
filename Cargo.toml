@@ -15,7 +15,7 @@ exclude = [
 
 [dependencies]
 # Private dependencies.
-rustix = "0.34.0"
+rustix = "0.34.1"
 
 [package.metadata.release]
 disable-publish = true
