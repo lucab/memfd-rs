@@ -45,12 +45,15 @@ fn test_sealing_add() {
 
     // `SealFutureWrite` is new as of Linux 5.1, so be prepared for it to fail
     // if we don't have it.
-    let future_write_seal = memfd::SealsHashSet::from_iter(vec![memfd::FileSeal::SealFutureWrite]);
     let mut a3 = a2;
-    if let Ok(()) = m0.add_seal(memfd::FileSeal::SealFutureWrite) {
-        a3 = a3.union(&future_write_seal).cloned().collect();
-        let r3 = m0.seals().unwrap();
-        assert_eq!(r3, a3);
+    #[cfg(any(target_os = "android", target_os = "linux"))]
+    {
+        let future_write_seal = memfd::SealsHashSet::from_iter(vec![memfd::FileSeal::SealFutureWrite]);
+        if let Ok(()) = m0.add_seal(memfd::FileSeal::SealFutureWrite) {
+            a3 = a3.union(&future_write_seal).cloned().collect();
+            let r3 = m0.seals().unwrap();
+            assert_eq!(r3, a3);
+        }
     }
 
     let seal_seal = memfd::SealsHashSet::from_iter(vec![memfd::FileSeal::SealSeal]);
