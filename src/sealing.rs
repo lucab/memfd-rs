@@ -35,7 +35,7 @@ pub enum FileSeal {
 
 impl FileSeal {
     /// Return the bit-wise flag value of this seal.
-    pub(crate) fn bitflags(self) -> SealFlags {
+    pub(crate) const fn bitflags(self) -> SealFlags {
         match self {
             Self::SealSeal => SealFlags::SEAL,
             Self::SealShrink => SealFlags::SHRINK,
