@@ -48,7 +48,8 @@ fn test_sealing_add() {
     let mut a3 = a2;
     #[cfg(any(target_os = "android", target_os = "linux"))]
     {
-        let future_write_seal = memfd::SealsHashSet::from_iter(vec![memfd::FileSeal::SealFutureWrite]);
+        let future_write_seal =
+            memfd::SealsHashSet::from_iter(vec![memfd::FileSeal::SealFutureWrite]);
         if let Ok(()) = m0.add_seal(memfd::FileSeal::SealFutureWrite) {
             a3 = a3.union(&future_write_seal).cloned().collect();
             let r3 = m0.seals().unwrap();
