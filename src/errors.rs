@@ -14,22 +14,18 @@ pub enum Error {
 
 impl std::error::Error for Error {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        use Error::*;
         match self {
-            Create(ref e) => Some(e),
-            AddSeals(ref e) => Some(e),
-            GetSeals(ref e) => Some(e),
+            Error::Create(e) | Error::AddSeals(e) | Error::GetSeals(e) => Some(e),
         }
     }
 }
 
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        use Error::*;
         f.write_str(match self {
-            Create(_) => "cannot create a memfd",
-            AddSeals(_) => "cannot add seals to the memfd",
-            GetSeals(_) => "cannot read seals for a memfd",
+            Error::Create(_) => "cannot create a memfd",
+            Error::AddSeals(_) => "cannot add seals to the memfd",
+            Error::GetSeals(_) => "cannot read seals for a memfd",
         })
     }
 }
