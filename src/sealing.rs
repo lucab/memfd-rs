@@ -48,9 +48,9 @@ impl FileSeal {
 }
 
 /// Convert a set of seals into a bitflags value.
-pub(crate) fn seals_to_bitflags(set: &SealsHashSet) -> SealFlags {
+pub(crate) fn seals_to_bitflags<'a>(seals: impl IntoIterator<Item = &'a FileSeal>) -> SealFlags {
     let mut bits = SealFlags::empty();
-    for seal in set.iter() {
+    for seal in seals {
         bits |= seal.bitflags();
     }
     bits

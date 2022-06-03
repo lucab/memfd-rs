@@ -17,10 +17,10 @@
 //!     mfd.as_file().set_len(1024)?;
 //!
 //!     // Add seals to prevent further resizing.
-//!     let mut seals = memfd::SealsHashSet::new();
-//!     seals.insert(memfd::FileSeal::SealShrink);
-//!     seals.insert(memfd::FileSeal::SealGrow);
-//!     mfd.add_seals(&seals)?;
+//!     mfd.add_seals(&[
+//!         memfd::FileSeal::SealShrink,
+//!         memfd::FileSeal::SealGrow
+//!     ])?;
 //!
 //!     // Prevent further sealing changes.
 //!     mfd.add_seal(memfd::FileSeal::SealSeal)?;

@@ -183,15 +183,20 @@ impl Memfd {
 
     /// Add a seal to the existing set of seals.
     pub fn add_seal(&self, seal: sealing::FileSeal) -> Result<(), crate::Error> {
-        use std::iter::FromIterator;
-
-        let set = sealing::SealsHashSet::from_iter(vec![seal]);
-        self.add_seals(&set)
+        let flags = seal.bitflags();
+        self.add_seal_flags(flags)
     }
 
     /// Add some seals to the existing set of seals.
-    pub fn add_seals(&self, seals: &sealing::SealsHashSet) -> Result<(), crate::Error> {
+    pub fn add_seals<'a>(
+        &self,
+        seals: impl IntoIterator<Item = &'a sealing::FileSeal>,
+    ) -> Result<(), crate::Error> {
         let flags = sealing::seals_to_bitflags(seals);
+        self.add_seal_flags(flags)
+    }
+
+    fn add_seal_flags(&self, flags: rustix::fs::SealFlags) -> Result<(), crate::Error> {
         rustix::fs::fcntl_add_seals(&self.file, flags)
             .map_err(Into::into)
             .map_err(crate::Error::AddSeals)?;
