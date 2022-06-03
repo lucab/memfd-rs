@@ -35,14 +35,14 @@ pub enum FileSeal {
 
 impl FileSeal {
     /// Return the bit-wise flag value of this seal.
-    pub(crate) fn bitflags(self) -> SealFlags {
+    pub(crate) const fn bitflags(self) -> SealFlags {
         match self {
-            FileSeal::SealSeal => SealFlags::SEAL,
-            FileSeal::SealShrink => SealFlags::SHRINK,
-            FileSeal::SealGrow => SealFlags::GROW,
-            FileSeal::SealWrite => SealFlags::WRITE,
+            Self::SealSeal => SealFlags::SEAL,
+            Self::SealShrink => SealFlags::SHRINK,
+            Self::SealGrow => SealFlags::GROW,
+            Self::SealWrite => SealFlags::WRITE,
             #[cfg(any(target_os = "android", target_os = "linux"))]
-            FileSeal::SealFutureWrite => SealFlags::FUTURE_WRITE,
+            Self::SealFutureWrite => SealFlags::FUTURE_WRITE,
         }
     }
 }

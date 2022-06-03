@@ -2,16 +2,17 @@
 name = "memfd"
 version = "0.5.2-alpha.0"
 edition = "2018"
-authors = [ "Luca Bruno <lucab@lucabruno.net>", "Simonas Kazlauskas <git@kazlauskas.me>" ]
+authors = [
+    "Luca Bruno <lucab@lucabruno.net>",
+    "Simonas Kazlauskas <git@kazlauskas.me>",
+]
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/lucab/memfd-rs"
 documentation = "https://docs.rs/memfd"
 description = "A pure-Rust library to work with Linux memfd and sealing"
 keywords = ["Linux", "memfd", "memfd_create", "seal"]
-exclude = [
-".gitignore",
-".travis.yml",
-]
+categories = ["filesystem", "os", "os::unix-apis"]
+exclude = [".gitignore", ".travis.yml"]
 
 [dependencies]
 # Private dependencies.

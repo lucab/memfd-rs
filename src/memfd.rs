@@ -20,24 +20,28 @@ impl MemfdOptions {
     ///  * hugetlb is disabled.
     ///
     /// [`FileSeal::SealSeal`]: sealing::FileSeal::SealSeal
-    pub fn new() -> Self {
-        Self::default()
+    pub const fn new() -> Self {
+        Self {
+            allow_sealing: false,
+            cloexec: true,
+            hugetlb: None,
+        }
     }
 
     /// Whether to allow adding seals to the created `Memfd`.
-    pub fn allow_sealing(mut self, value: bool) -> Self {
+    pub const fn allow_sealing(mut self, value: bool) -> Self {
         self.allow_sealing = value;
         self
     }
 
     /// Whether to set the `FD_CLOEXEC` flag on the created `Memfd`.
-    pub fn close_on_exec(mut self, value: bool) -> Self {
+    pub const fn close_on_exec(mut self, value: bool) -> Self {
         self.cloexec = value;
         self
     }
 
     /// Optional hugetlb support and page size for the created `Memfd`.
-    pub fn hugetlb(mut self, size: Option<HugetlbSize>) -> Self {
+    pub const fn hugetlb(mut self, size: Option<HugetlbSize>) -> Self {
         self.hugetlb = size;
         self
     }
@@ -74,16 +78,11 @@ impl MemfdOptions {
 
 impl Default for MemfdOptions {
     fn default() -> Self {
-        Self {
-            allow_sealing: false,
-            cloexec: true,
-            hugetlb: None,
-        }
+        Self::new()
     }
 }
 
 /// Page size for a hugetlb anonymous file.
-#[allow(clippy::all)]
 #[derive(Copy, Clone, Debug)]
 pub enum HugetlbSize {
     /// 64KB hugetlb page.
@@ -109,18 +108,18 @@ pub enum HugetlbSize {
 }
 
 impl HugetlbSize {
-    fn bitflags(self) -> MemfdFlags {
+    const fn bitflags(self) -> MemfdFlags {
         match self {
-            HugetlbSize::Huge64KB => MemfdFlags::HUGE_64KB,
-            HugetlbSize::Huge512KB => MemfdFlags::HUGE_512KB,
-            HugetlbSize::Huge1MB => MemfdFlags::HUGE_1MB,
-            HugetlbSize::Huge2MB => MemfdFlags::HUGE_2MB,
-            HugetlbSize::Huge8MB => MemfdFlags::HUGE_8MB,
-            HugetlbSize::Huge16MB => MemfdFlags::HUGE_16MB,
-            HugetlbSize::Huge256MB => MemfdFlags::HUGE_256MB,
-            HugetlbSize::Huge1GB => MemfdFlags::HUGE_1GB,
-            HugetlbSize::Huge2GB => MemfdFlags::HUGE_2GB,
-            HugetlbSize::Huge16GB => MemfdFlags::HUGE_16GB,
+            Self::Huge64KB => MemfdFlags::HUGE_64KB,
+            Self::Huge512KB => MemfdFlags::HUGE_512KB,
+            Self::Huge1MB => MemfdFlags::HUGE_1MB,
+            Self::Huge2MB => MemfdFlags::HUGE_2MB,
+            Self::Huge8MB => MemfdFlags::HUGE_8MB,
+            Self::Huge16MB => MemfdFlags::HUGE_16MB,
+            Self::Huge256MB => MemfdFlags::HUGE_256MB,
+            Self::Huge1GB => MemfdFlags::HUGE_1GB,
+            Self::Huge2GB => MemfdFlags::HUGE_2GB,
+            Self::Huge16GB => MemfdFlags::HUGE_16GB,
         }
     }
 }
@@ -141,13 +140,13 @@ impl Memfd {
     where
         F: AsRawFd + IntoRawFd,
     {
-        if !is_memfd(&fd) {
-            Err(fd)
-        } else {
+        if is_memfd(&fd) {
             // SAFETY: from_raw_fd requires a valid, uniquely owned file descriptor.
             // The IntoRawFd trait guarantees both conditions.
             let file = unsafe { fs::File::from_raw_fd(fd.into_raw_fd()) };
             Ok(Self { file })
+        } else {
+            Err(fd)
         }
     }
 
@@ -165,7 +164,7 @@ impl Memfd {
     /// Return a reference to the backing [`File`].
     ///
     /// [`File`]: fs::File
-    pub fn as_file(&self) -> &fs::File {
+    pub const fn as_file(&self) -> &fs::File {
         &self.file
     }
 
@@ -219,9 +218,9 @@ impl FromRawFd for Memfd {
     /// `fd` must be a valid file descriptor representing a memfd file.
     ///
     /// [`Memfd`]: Memfd
-    unsafe fn from_raw_fd(fd: RawFd) -> Memfd {
+    unsafe fn from_raw_fd(fd: RawFd) -> Self {
         let file = fs::File::from_raw_fd(fd);
-        Memfd { file }
+        Self { file }
     }
 }
 

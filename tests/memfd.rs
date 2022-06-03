@@ -41,8 +41,7 @@ fn test_memfd_from_into() {
     let opts = memfd::MemfdOptions::default();
     let m0 = opts.create("default").unwrap();
     let f0 = m0.into_file();
-    let _ = memfd::Memfd::try_from_file(f0)
-        .expect("failed to convert a legit memfd file");
+    let _ = memfd::Memfd::try_from_file(f0).expect("failed to convert a legit memfd file");
 
     let rootdir = fs::File::open("/").unwrap();
     let _ = memfd::Memfd::try_from_file(rootdir)
