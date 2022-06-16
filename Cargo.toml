@@ -16,7 +16,7 @@ exclude = [".gitignore", ".travis.yml"]
 
 [dependencies]
 # Private dependencies.
-rustix = "0.34.1"
+rustix = "0.35.6"
 
 [package.metadata.release]
 disable-publish = true
