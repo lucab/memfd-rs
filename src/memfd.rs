@@ -70,9 +70,7 @@ impl MemfdOptions {
         let fd = rustix::fs::memfd_create(name.as_ref(), flags)
             .map_err(Into::into)
             .map_err(crate::Error::Create)?;
-        Ok(Memfd {
-            file: rustix::fd::FromFd::from_fd(fd.into()),
-        })
+        Ok(Memfd { file: fd.into() })
     }
 }
 
