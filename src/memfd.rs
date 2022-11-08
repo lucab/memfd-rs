@@ -70,9 +70,7 @@ impl MemfdOptions {
         let fd = rustix::fs::memfd_create(name.as_ref(), flags)
             .map_err(Into::into)
             .map_err(crate::Error::Create)?;
-        Ok(Memfd {
-            file: rustix::fd::FromFd::from_fd(fd.into()),
-        })
+        Ok(Memfd { file: fd.into() })
     }
 }
 
@@ -250,5 +248,5 @@ fn is_memfd<F: AsRawFd>(fd: &F) -> bool {
     // is valid. Once `AsFd` is stabilized in std, we can use that instead of
     // `AsRawFd`, and eliminate this `unsafe` block.
     let fd = unsafe { rustix::fd::BorrowedFd::borrow_raw(fd.as_raw_fd()) };
-    rustix::fs::fcntl_get_seals(&fd).is_ok()
+    rustix::fs::fcntl_get_seals(fd).is_ok()
 }
