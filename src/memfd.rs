@@ -16,7 +16,7 @@ impl MemfdOptions {
     ///
     /// The default options are:
     ///  * [`FileSeal::SealSeal`] (i.e. no further sealing);
-    ///  * close-on-exec is disabled;
+    ///  * close-on-exec is enabled;
     ///  * hugetlb is disabled.
     ///
     /// [`FileSeal::SealSeal`]: sealing::FileSeal::SealSeal
