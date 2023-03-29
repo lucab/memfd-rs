@@ -1,10 +1,10 @@
 [package]
 name = "memfd"
-version = "0.6.2"
+version = "0.6.3"
 edition = "2018"
 authors = [
     "Luca Bruno <lucab@lucabruno.net>",
-    "Simonas Kazlauskas <git@kazlauskas.me>",
+    "Simonas Kazlauskas <memfd@kazlauskas.me>",
 ]
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/lucab/memfd-rs"
