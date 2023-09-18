@@ -1,6 +1,6 @@
 [package]
 name = "memfd"
-version = "0.6.3"
+version = "0.6.4"
 edition = "2018"
 authors = [
     "Luca Bruno <lucab@lucabruno.net>",
@@ -21,7 +21,6 @@ rustix = { version = "0.38.8", features = ["fs"] }
 [package.metadata.release]
 publish = false
 push = false
-post-release-commit-message = "cargo: development version bump"
 pre-release-commit-message = "cargo: memfd release {{version}}"
 sign-commit = true
 sign-tag = true
