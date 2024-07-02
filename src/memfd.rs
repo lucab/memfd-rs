@@ -1,7 +1,9 @@
 use crate::sealing;
 use rustix::fs::{MemfdFlags, SealFlags};
 use std::fs;
+use std::process;
 use std::os::unix::io::{AsRawFd, FromRawFd, IntoRawFd, RawFd};
+use std::path::{PathBuf};
 
 /// A `Memfd` builder, providing advanced options and flags for specifying its behavior.
 #[derive(Clone, Debug)]
@@ -157,6 +159,24 @@ impl Memfd {
     /// [`File`]: fs::File
     pub fn try_from_file(file: fs::File) -> Result<Self, fs::File> {
         Self::try_from_fd(file)
+    }
+
+    ///
+    /// Returns the absolute path to the `Memfd` file as a String.
+    /// The path contains the pid of the current process, so it can be shared with other processes.
+    /// The path remains valid until the `Memfd` or its `File` is dropped.
+    ///
+    pub fn as_path_string(&self) -> String {
+        format!("/proc/{}/fd/{}", process::id(), self.file.as_raw_fd())
+    }
+
+    ///
+    /// Returns the absolute path to the `Memfd` file as a PathBuf.
+    /// The path contains the pid of the current process, so it can be shared with other processes.
+    /// The path remains valid until the `Memfd` or its `File` is dropped.
+    ///
+    pub fn as_path_buf(&self) -> PathBuf {
+        PathBuf::from(self.as_path_string())
     }
 
     /// Return a reference to the backing [`File`].
