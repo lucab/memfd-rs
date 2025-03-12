@@ -1,6 +1,5 @@
 # memfd
 
-[![Build Status](https://travis-ci.org/lucab/memfd-rs.svg?branch=master)](https://travis-ci.org/lucab/memfd-rs)
 [![crates.io](https://img.shields.io/crates/v/memfd.svg)](https://crates.io/crates/memfd)
 [![Documentation](https://docs.rs/memfd/badge.svg)](https://docs.rs/memfd)
 
