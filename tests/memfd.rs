@@ -50,6 +50,6 @@ fn test_memfd_from_into() {
 
 /// Check if the close-on-exec flag is set for the memfd.
 pub fn get_close_on_exec(memfd: &memfd::Memfd) -> std::io::Result<bool> {
-    let flags = rustix::fs::fcntl_getfd(memfd.as_file())?;
-    Ok(flags.contains(rustix::fs::FdFlags::CLOEXEC))
+    let flags = rustix::io::fcntl_getfd(memfd.as_file())?;
+    Ok(flags.contains(rustix::io::FdFlags::CLOEXEC))
 }
