@@ -9,6 +9,8 @@ on:
   pull_request:
     types: [opened, repoened, synchronize]
 
+permissions: {}
+
 jobs:
   native-test:
     runs-on: ubuntu-latest
