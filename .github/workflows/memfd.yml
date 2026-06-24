@@ -29,33 +29,24 @@ jobs:
         with:
           persist-credentials: false
       - name: Update
-        uses: actions-rs/cargo@v1
-        with:
-          command: update
-          args: --manifest-path=Cargo.toml
+        run: |
+          cargo version
+          cargo update
       - name: Clippy
-        uses: actions-rs/cargo@v1
-        with:
-          command: clippy
+        run: |
+          cargo clippy
       - name: Doc
-        uses: actions-rs/cargo@v1
-        with:
-          command: doc
+        run: |
+          cargo doc
       - name: Build
-        uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: --manifest-path=Cargo.toml
+        run: |
+          cargo build
       - name: Test
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: --manifest-path=Cargo.toml -- --nocapture
+        run: |
+          cargo test -- --nocapture
       - name: Test Release
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: --manifest-path=Cargo.toml --release -- --nocapture
+        run: |
+          cargo test --release -- --nocapture
 
   build-on-unsupported:
     runs-on: windows-latest
@@ -72,15 +63,12 @@ jobs:
         with:
           persist-credentials: false
       - name: Update
-        uses: actions-rs/cargo@v1
-        with:
-          command: update
-          args: --manifest-path=Cargo.toml
+        run: |
+          cargo version
+          cargo update
       - name: Build ${{ matrix.rust_target }}
-        uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: --manifest-path=Cargo.toml
+        run: |
+          cargo build
   cross:
     runs-on: ubuntu-latest
     strategy:
@@ -99,7 +87,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Build
-        uses: actions-rs/cargo@v1
+        uses: actions-rs/cargo@9e120dd99b0fbad1c065f686657e914e76bd7b72 # latest
         with:
           use-cross: true
           command: build
