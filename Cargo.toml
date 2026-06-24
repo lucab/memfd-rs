@@ -13,6 +13,7 @@ description = "A pure-Rust library to work with Linux memfd and sealing"
 keywords = ["Linux", "memfd", "memfd_create", "seal"]
 categories = ["filesystem", "os", "os::unix-apis"]
 exclude = [".gitignore", ".travis.yml"]
+rust-version = "1.85"
 
 [dependencies]
 # Private dependencies.
