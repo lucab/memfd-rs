@@ -18,10 +18,8 @@ fn main() {
     mfd.as_file().set_len(1024).unwrap();
 
     // Add seals to prevent further resizing.
-    mfd.add_seals(&[
-        memfd::FileSeal::SealShrink,
-        memfd::FileSeal::SealGrow
-    ]).unwrap();
+    mfd.add_seals(&[memfd::FileSeal::SealShrink, memfd::FileSeal::SealGrow])
+        .unwrap();
 
     // Prevent further sealing changes.
     mfd.add_seal(memfd::FileSeal::SealSeal).unwrap();

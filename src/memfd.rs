@@ -222,8 +222,10 @@ impl FromRawFd for Memfd {
     ///
     /// [`Memfd`]: Memfd
     unsafe fn from_raw_fd(fd: RawFd) -> Self {
-        let file = fs::File::from_raw_fd(fd);
-        Self { file }
+        unsafe {
+            let file = fs::File::from_raw_fd(fd);
+            Self { file }
+        }
     }
 }
 
