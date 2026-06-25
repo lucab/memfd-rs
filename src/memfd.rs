@@ -3,7 +3,7 @@ use rustix::fs::{MemfdFlags, SealFlags};
 use std::fs;
 use std::os::unix::io::{AsRawFd, FromRawFd, IntoRawFd, RawFd};
 
-/// A `Memfd` builder, providing advanced options and flags for specifying its behavior.
+/// A [`Memfd`] builder, providing advanced options and flags for specifying its behavior.
 #[derive(Clone, Debug)]
 pub struct MemfdOptions {
     allow_sealing: bool,
@@ -12,7 +12,7 @@ pub struct MemfdOptions {
 }
 
 impl MemfdOptions {
-    /// Default set of options for `Memfd` creation.
+    /// Default set of options for [`Memfd`] creation.
     ///
     /// The default options are:
     ///  * [`FileSeal::SealSeal`] (i.e. no further sealing);
@@ -63,8 +63,6 @@ impl MemfdOptions {
     }
 
     /// Create a [`Memfd`] according to configuration.
-    ///
-    /// [`Memfd`]: Memfd
     pub fn create<T: AsRef<str>>(&self, name: T) -> Result<Memfd, crate::Error> {
         let flags = self.bitflags();
         let fd = rustix::fs::memfd_create(name.as_ref(), flags)
@@ -219,8 +217,6 @@ impl FromRawFd for Memfd {
     /// # Safety
     ///
     /// `fd` must be a valid file descriptor representing a memfd file.
-    ///
-    /// [`Memfd`]: Memfd
     unsafe fn from_raw_fd(fd: RawFd) -> Self {
         unsafe {
             let file = fs::File::from_raw_fd(fd);

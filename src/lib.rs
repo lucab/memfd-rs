@@ -30,10 +30,10 @@
 //! ```
 #![deny(
     missing_docs,
-    broken_intra_doc_links,
-    clippy::all,
     unreachable_pub,
-    unused
+    unused,
+    clippy::all,
+    rustdoc::broken_intra_doc_links
 )]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 #![cfg_attr(docsrs, doc(cfg(any(target_os = "android", target_os = "linux"))))]

@@ -1,7 +1,7 @@
 use rustix::fs::SealFlags;
 use std::collections::HashSet;
 
-/// An `HashSet` specialized on `FileSeal`.
+/// An [`HashSet`] specialized on [`FileSeal`].
 pub type SealsHashSet = HashSet<FileSeal>;
 
 /// Seal that can be applied to a [`Memfd`].
