@@ -1,7 +1,14 @@
 use crate::sealing;
-use rustix::fs::{MemfdFlags, SealFlags};
+
+use rustix::fs::MemfdFlags;
+use rustix::fs::SealFlags;
 use std::fs;
-use std::os::unix::io::{AsRawFd, FromRawFd, IntoRawFd, RawFd};
+use std::os::fd::AsFd;
+use std::os::fd::BorrowedFd;
+use std::os::fd::OwnedFd;
+use std::os::unix::io::AsRawFd;
+use std::os::unix::io::FromRawFd;
+use std::os::unix::io::IntoRawFd;
 
 /// A [`Memfd`] builder, providing advanced options and flags for specifying its behavior.
 #[derive(Clone, Debug)]
@@ -127,20 +134,14 @@ pub struct Memfd {
 }
 
 impl Memfd {
-    /// Try to convert an object that owns a file descriptor into a `Memfd`.
+    /// Try to convert an [`OwnedFd`] object into a `Memfd`.
     ///
-    /// This function consumes the ownership of the specified object. If the underlying
-    /// file-descriptor is compatible with memfd/sealing, a `Memfd` object is returned.
-    /// Otherwise the supplied object is returned as error.
-    pub fn try_from_fd<F>(fd: F) -> Result<Self, F>
-    where
-        F: AsRawFd + IntoRawFd,
-    {
-        if is_memfd(&fd) {
-            // SAFETY: from_raw_fd requires a valid, uniquely owned file descriptor.
-            // The IntoRawFd trait guarantees both conditions.
-            let file = unsafe { fs::File::from_raw_fd(fd.into_raw_fd()) };
-            Ok(Self { file })
+    /// This function consumes the ownership of the specified `OwnedFd`. If the underlying
+    /// file descriptor is compatible with memfd/sealing, a `Memfd` object is returned.
+    /// Otherwise the supplied `OwnedFd` is returned for further usage.
+    pub fn try_from_owned_fd(fd: OwnedFd) -> Result<Self, OwnedFd> {
+        if check_memfd_seals(&fd) {
+            Ok(Self { file: fd.into() })
         } else {
             Err(fd)
         }
@@ -148,13 +149,51 @@ impl Memfd {
 
     /// Try to convert a [`File`] object into a `Memfd`.
     ///
-    /// This function consumes the ownership of the specified `File`.  If the underlying
-    /// file-descriptor is compatible with memfd/sealing, a `Memfd` object is returned.
+    /// This function consumes the ownership of the specified `File`. If the underlying
+    /// file descriptor is compatible with memfd/sealing, a `Memfd` object is returned.
     /// Otherwise the supplied `File` is returned for further usage.
     ///
     /// [`File`]: fs::File
     pub fn try_from_file(file: fs::File) -> Result<Self, fs::File> {
-        Self::try_from_fd(file)
+        if check_memfd_seals(&file) {
+            Ok(Self { file })
+        } else {
+            Err(file)
+        }
+    }
+
+    /// Try to convert an object that owns a file descriptor into a `Memfd`.
+    ///
+    /// This function consumes the ownership of the specified object. If the underlying
+    /// file descriptor is compatible with memfd/sealing, a `Memfd` object is returned.
+    /// Otherwise the supplied object is returned as error.
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure that all the following conditions are met:
+    ///  - `fd` refers to a valid and open file descriptor.
+    ///  - `fd` uniquely owns the underlying file descriptor.
+    pub unsafe fn try_from_raw_fd<F>(fd: F) -> Result<Self, F>
+    where
+        F: AsRawFd + IntoRawFd,
+    {
+        let raw_fd = fd.as_raw_fd();
+        // Check that the RawFd value is compatible with BorrowedFd guarantees,
+        // otherwise the conversion below could panic.
+        if raw_fd == -1 {
+            return Err(fd);
+        }
+
+        // SAFETY: the caller guarantees that `fd` is a valid and uniquely owned FD.
+        unsafe {
+            let borrowed_fd = BorrowedFd::borrow_raw(raw_fd);
+            if check_memfd_seals(&borrowed_fd) {
+                let file = fs::File::from_raw_fd(raw_fd);
+                Ok(Self { file })
+            } else {
+                Err(fd)
+            }
+        }
     }
 
     /// Return a reference to the backing [`File`].
@@ -208,32 +247,15 @@ impl Memfd {
     }
 }
 
-impl FromRawFd for Memfd {
-    /// Convert a raw file-descriptor to a [`Memfd`].
-    ///
-    /// This function consumes ownership of the specified file descriptor. `Memfd` will take
-    /// responsibility for closing it when the object goes out of scope.
-    ///
-    /// # Safety
-    ///
-    /// `fd` must be a valid file descriptor representing a memfd file.
-    unsafe fn from_raw_fd(fd: RawFd) -> Self {
-        unsafe {
-            let file = fs::File::from_raw_fd(fd);
-            Self { file }
-        }
+impl AsFd for Memfd {
+    fn as_fd(&self) -> BorrowedFd<'_> {
+        self.file.as_fd()
     }
 }
 
-impl AsRawFd for Memfd {
-    fn as_raw_fd(&self) -> RawFd {
-        self.file.as_raw_fd()
-    }
-}
-
-impl IntoRawFd for Memfd {
-    fn into_raw_fd(self) -> RawFd {
-        self.into_file().into_raw_fd()
+impl From<Memfd> for OwnedFd {
+    fn from(memfd: Memfd) -> Self {
+        memfd.into_file().into()
     }
 }
 
@@ -241,10 +263,6 @@ impl IntoRawFd for Memfd {
 ///
 /// Implemented by trying to retrieve the seals.
 /// If that fails, the fd is not a memfd.
-fn is_memfd<F: AsRawFd>(fd: &F) -> bool {
-    // SAFETY: For now, we trust the file descriptor returned by `as_raw_fd()`
-    // is valid. Once `AsFd` is stabilized in std, we can use that instead of
-    // `AsRawFd`, and eliminate this `unsafe` block.
-    let fd = unsafe { rustix::fd::BorrowedFd::borrow_raw(fd.as_raw_fd()) };
+fn check_memfd_seals<F: AsFd>(fd: &F) -> bool {
     rustix::fs::fcntl_get_seals(fd).is_ok()
 }
