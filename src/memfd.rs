@@ -259,6 +259,26 @@ impl From<Memfd> for OwnedFd {
     }
 }
 
+impl FromRawFd for Memfd {
+    /// Convert a raw file descriptor to a [`Memfd`].
+    ///
+    /// This function consumes ownership of the specified file descriptor. `Memfd` will take
+    /// responsibility for closing it when the object goes out of scope.
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure that all the following conditions are met:
+    ///  - `fd` refers to a valid and open file descriptor.
+    ///  - `fd` uniquely owns the underlying file descriptor.
+    ///  - The underlying file descriptor is a valid memfd.
+    unsafe fn from_raw_fd(fd: RawFd) -> Self {
+        unsafe {
+            let file = fs::File::from_raw_fd(fd);
+            Self { file }
+        }
+    }
+}
+
 /// Check if a file descriptor is a memfd.
 ///
 /// Implemented by trying to retrieve the seals.
