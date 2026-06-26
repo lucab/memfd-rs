@@ -6,6 +6,7 @@ use std::fs;
 use std::os::fd::AsFd;
 use std::os::fd::BorrowedFd;
 use std::os::fd::OwnedFd;
+use std::os::fd::RawFd;
 use std::os::unix::io::AsRawFd;
 use std::os::unix::io::FromRawFd;
 use std::os::unix::io::IntoRawFd;
@@ -256,6 +257,26 @@ impl AsFd for Memfd {
 impl From<Memfd> for OwnedFd {
     fn from(memfd: Memfd) -> Self {
         memfd.into_file().into()
+    }
+}
+
+impl FromRawFd for Memfd {
+    /// Convert a raw file descriptor to a [`Memfd`].
+    ///
+    /// This function consumes ownership of the specified file descriptor. `Memfd` will take
+    /// responsibility for closing it when the object goes out of scope.
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure that all the following conditions are met:
+    ///  - `fd` refers to a valid and open file descriptor.
+    ///  - `fd` uniquely owns the underlying file descriptor.
+    ///  - The underlying file descriptor is a valid memfd.
+    unsafe fn from_raw_fd(fd: RawFd) -> Self {
+        unsafe {
+            let file = fs::File::from_raw_fd(fd);
+            Self { file }
+        }
     }
 }
 
