@@ -8,6 +8,7 @@ pub type SealsHashSet = HashSet<FileSeal>;
 ///
 /// [`Memfd`]: crate::Memfd
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[non_exhaustive]
 pub enum FileSeal {
     /// File cannot be reduced in size.
     ///
@@ -31,6 +32,14 @@ pub enum FileSeal {
     /// Corresponds to `F_SEAL_FUTURE_WRITE`.
     #[cfg(any(target_os = "android", target_os = "linux"))]
     SealFutureWrite,
+    /// File executable bits cannot be changed.
+    ///
+    /// This prevents modification of any of executable bits (`S_IXUSR`, `S_IXGRP`,
+    /// or `S_IXOTH`), by `chmod(2)` and similar. Introduced in Linux 6.3.
+    ///
+    /// Corresponds to `F_SEAL_EXEC`.
+    #[cfg(any(target_os = "android", target_os = "linux"))]
+    SealExec,
 }
 
 impl FileSeal {
@@ -43,6 +52,8 @@ impl FileSeal {
             Self::SealWrite => SealFlags::WRITE,
             #[cfg(any(target_os = "android", target_os = "linux"))]
             Self::SealFutureWrite => SealFlags::FUTURE_WRITE,
+            #[cfg(any(target_os = "android", target_os = "linux"))]
+            Self::SealExec => SealFlags::EXEC,
         }
     }
 }
@@ -74,6 +85,10 @@ pub(crate) fn bitflags_to_seals(bitflags: SealFlags) -> SealsHashSet {
     #[cfg(any(target_os = "android", target_os = "linux"))]
     if bitflags.contains(SealFlags::FUTURE_WRITE) {
         sset.insert(FileSeal::SealFutureWrite);
+    }
+    #[cfg(any(target_os = "android", target_os = "linux"))]
+    if bitflags.contains(SealFlags::EXEC) {
+        sset.insert(FileSeal::SealExec);
     }
     sset
 }
