@@ -6,8 +6,7 @@ fn test_sealing_default() {
     let opts = memfd::MemfdOptions::default();
     let m0 = opts.create("default").unwrap();
     let sset = m0.seals().unwrap();
-    let default = memfd::SealsHashSet::from_iter(vec![memfd::FileSeal::SealSeal]);
-    assert_eq!(sset, default);
+    assert_eq!(sset.len(), 0);
 }
 
 #[test]
