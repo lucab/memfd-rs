@@ -72,10 +72,14 @@ impl MemfdOptions {
     /// Create a [`Memfd`] according to configuration.
     pub fn create<T: AsRef<str>>(&self, name: T) -> Result<Memfd, crate::Error> {
         let flags = self.bitflags();
-        let fd = rustix::fs::memfd_create(name.as_ref(), flags)
-            .map_err(Into::into)
-            .map_err(crate::Error::Create)?;
+        let fd = Self::create_inner(name.as_ref(), flags)?;
         Ok(Memfd { file: fd.into() })
+    }
+
+    pub(crate) fn create_inner(name: &str, flags: MemfdFlags) -> Result<OwnedFd, crate::Error> {
+        rustix::fs::memfd_create(name, flags)
+            .map_err(Into::into)
+            .map_err(crate::Error::Create)
     }
 }
 
@@ -263,6 +267,6 @@ impl From<Memfd> for OwnedFd {
 ///
 /// Implemented by trying to retrieve the seals.
 /// If that fails, the fd is not a memfd.
-fn check_memfd_seals<F: AsFd>(fd: &F) -> bool {
+pub(crate) fn check_memfd_seals<F: AsFd>(fd: &F) -> bool {
     rustix::fs::fcntl_get_seals(fd).is_ok()
 }
