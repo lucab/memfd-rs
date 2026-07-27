@@ -22,14 +22,12 @@ impl MemfdOptions {
     /// Default set of options for [`Memfd`] creation.
     ///
     /// The default options are:
-    ///  * [`FileSeal::SealSeal`] (i.e. no further sealing);
+    ///  * sealing is allowed;
     ///  * close-on-exec is enabled;
     ///  * hugetlb is disabled.
-    ///
-    /// [`FileSeal::SealSeal`]: sealing::FileSeal::SealSeal
     pub const fn new() -> Self {
         Self {
-            allow_sealing: false,
+            allow_sealing: true,
             cloexec: true,
             hugetlb: None,
         }
