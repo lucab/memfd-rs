@@ -16,12 +16,14 @@ pub struct MemfdOptions {
     allow_sealing: bool,
     cloexec: bool,
     hugetlb: Option<HugetlbSize>,
+    noexec_seal: NoexecSealMode,
 }
 
 impl MemfdOptions {
     /// Default set of options for [`Memfd`] creation.
     ///
     /// The default options are:
+    ///  * (if the kernel supports it) `noexec_seal`  is enforced on creation;
     ///  * sealing is allowed;
     ///  * close-on-exec is enabled;
     ///  * hugetlb is disabled.
@@ -30,6 +32,7 @@ impl MemfdOptions {
             allow_sealing: true,
             cloexec: true,
             hugetlb: None,
+            noexec_seal: NoexecSealMode::ProbeAndSetNoexecSeal,
         }
     }
 
@@ -51,6 +54,12 @@ impl MemfdOptions {
         self
     }
 
+    /// Whether to enable optional `noexec_seal` support for the created `Memfd`.
+    pub const fn noexec_seal(mut self, mode: NoexecSealMode) -> Self {
+        self.noexec_seal = mode;
+        self
+    }
+
     /// Translate the current options into a bitflags value for `memfd_create`.
     fn bitflags(&self) -> MemfdFlags {
         let mut bits = MemfdFlags::empty();
@@ -64,12 +73,38 @@ impl MemfdOptions {
             bits |= hugetlb.bitflags();
             bits |= MemfdFlags::HUGETLB;
         }
+        match self.noexec_seal {
+            NoexecSealMode::SetNoexecSeal => {
+                bits |= MemfdFlags::NOEXEC_SEAL;
+                bits |= MemfdFlags::ALLOW_SEALING;
+            }
+            NoexecSealMode::SetExec => {
+                bits |= MemfdFlags::EXEC;
+            }
+            NoexecSealMode::ProbeAndSetNoexecSeal => {
+                if crate::runtime::create_noexec_supported() {
+                    bits |= MemfdFlags::NOEXEC_SEAL;
+                    bits |= MemfdFlags::ALLOW_SEALING;
+                }
+            }
+            NoexecSealMode::ProbeAndSetExec => {
+                if crate::runtime::create_noexec_supported() {
+                    bits |= MemfdFlags::EXEC;
+                }
+            }
+            NoexecSealMode::None => {}
+        }
         bits
     }
 
     /// Create a [`Memfd`] according to configuration.
     pub fn create<T: AsRef<str>>(&self, name: T) -> Result<Memfd, crate::Error> {
         let flags = self.bitflags();
+        if flags.contains(MemfdFlags::NOEXEC_SEAL) && !self.allow_sealing {
+            return Err(crate::Error::Create(std::io::Error::other(
+                "cannot enable MFD_NOEXEC_SEAL and disable MFD_ALLOW_SEALING at the same time",
+            )));
+        }
         let fd = Self::create_inner(name.as_ref(), flags)?;
         Ok(Memfd { file: fd.into() })
     }
@@ -85,6 +120,21 @@ impl Default for MemfdOptions {
     fn default() -> Self {
         Self::new()
     }
+}
+
+/// Execution and sealing mode for [`Memfd`] creation.
+#[derive(Copy, Clone, Debug)]
+pub enum NoexecSealMode {
+    /// Always set the `MFD_NOEXEC_SEAL` flag on creation.
+    SetNoexecSeal,
+    /// Always set the `MFD_EXEC` flag on creation.
+    SetExec,
+    /// Probe if the kernel supports `MFD_NOEXEC_SEAL` and set it on creation if supported.
+    ProbeAndSetNoexecSeal,
+    /// Probe if the kernel supports `MFD_EXEC` and set it on creation if supported.
+    ProbeAndSetExec,
+    /// Do not set any `MFD_NOEXEC_SEAL` or `MFD_EXEC` flags on creation.
+    None,
 }
 
 /// Page size for a hugetlb anonymous file.
