@@ -43,6 +43,7 @@
 
 mod errors;
 mod memfd;
+pub mod runtime;
 mod sealing;
 
 pub use crate::{
