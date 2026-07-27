@@ -2,19 +2,44 @@ extern crate memfd;
 use std::iter::FromIterator;
 
 #[test]
-fn test_sealing_default() {
+fn test_default() {
     let opts = memfd::MemfdOptions::default();
     let m0 = opts.create("default").unwrap();
     let sset = m0.seals().unwrap();
-    assert_eq!(sset.len(), 0);
+    if memfd::runtime::create_noexec_supported() {
+        let expected = memfd::SealsHashSet::from_iter(vec![memfd::FileSeal::SealExec]);
+        assert_eq!(sset, expected);
+    }
 }
 
 #[test]
-fn test_sealing_unsealed() {
-    let opts = memfd::MemfdOptions::default();
-    let m0 = opts.allow_sealing(true).create("default").unwrap();
+fn test_exec_no_sealing() {
+    if !memfd::runtime::create_noexec_supported() {
+        return;
+    }
+
+    let opts = memfd::MemfdOptions::default()
+        .noexec_seal(memfd::NoexecSealMode::SetExec)
+        .allow_sealing(false);
+    let m0 = opts.create("exec").unwrap();
     let sset = m0.seals().unwrap();
-    assert_eq!(sset.len(), 0);
+    let expected = memfd::SealsHashSet::from_iter(vec![memfd::FileSeal::SealSeal]);
+    assert_eq!(sset, expected);
+}
+
+#[test]
+fn test_noexec_seal() {
+    if !memfd::runtime::create_noexec_supported() {
+        return;
+    }
+
+    let opts = memfd::MemfdOptions::default()
+        .noexec_seal(memfd::NoexecSealMode::SetNoexecSeal)
+        .allow_sealing(true);
+    let m0 = opts.create("noexec").unwrap();
+    let sset = m0.seals().unwrap();
+    let expected = memfd::SealsHashSet::from_iter(vec![memfd::FileSeal::SealExec]);
+    assert_eq!(sset, expected);
 }
 
 #[test]
@@ -22,11 +47,11 @@ fn test_sealing_add() {
     let opts = memfd::MemfdOptions::default();
     let m0 = opts.allow_sealing(true).create("default").unwrap();
     let sset = m0.seals().unwrap();
-    assert_eq!(sset.len(), 0);
+    assert!(!sset.contains(&memfd::FileSeal::SealSeal));
 
     let write_seal = memfd::SealsHashSet::from_iter(vec![memfd::FileSeal::SealWrite]);
     m0.add_seal(memfd::FileSeal::SealWrite).unwrap();
-    let a0 = write_seal;
+    let a0 = sset.union(&write_seal).cloned().collect();
     let r0 = m0.seals().unwrap();
     assert_eq!(r0, a0);
 

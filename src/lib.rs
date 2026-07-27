@@ -48,6 +48,6 @@ mod sealing;
 
 pub use crate::{
     errors::Error,
-    memfd::{HugetlbSize, Memfd, MemfdOptions},
+    memfd::{HugetlbSize, Memfd, MemfdOptions, NoexecSealMode},
     sealing::{FileSeal, SealsHashSet},
 };
