@@ -1,13 +1,19 @@
+---
 name: Test memfd
 
-on:
+'on':
   push:
     paths-ignore:
     - '*.md'
     branches:
-    - master
+      - 'main'
+      - 'master'
+      - 'release/**'
   pull_request:
-    types: [opened, repoened, synchronize]
+    types: [opened, reopened, synchronize]
+  workflow_dispatch:
+
+permissions: {}
 
 jobs:
   native-test:
